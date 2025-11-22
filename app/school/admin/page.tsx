@@ -7,6 +7,7 @@ type Suggestion = {
   id: string;
   title: string;
   content: string | null;
+  image_url: string | null;
   author_name: string | null;
   created_at: string;
 };
@@ -15,6 +16,7 @@ type Post = {
   id: string;
   title: string;
   content: string | null;
+  image_url: string | null;
   created_at: string;
 };
 
@@ -24,13 +26,15 @@ type Student = {
   is_banned: boolean;
 };
 
+type SchoolInfo = {
+  id: string;
+  name: string;
+};
+
 type OverviewResponse = {
   ok: boolean;
   error?: string;
-  school?: {
-    id: string;
-    name: string;
-  };
+  school?: SchoolInfo;
   suggestions?: Suggestion[];
   posts?: Post[];
   students?: Student[];
@@ -41,6 +45,7 @@ export default function SchoolAdminPage() {
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newImageUrl, setNewImageUrl] = useState("");
@@ -58,7 +63,7 @@ export default function SchoolAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ telegramUser: user }),
       });
-      const json = await res.json();
+      const json: OverviewResponse = await res.json();
       setData(json);
       if (!json.ok && json.error) {
         setStatusMsg(json.error);
@@ -102,6 +107,7 @@ export default function SchoolAdminPage() {
       }
       setNewTitle("");
       setNewContent("");
+      setNewImageUrl("");
       setStatusMsg("Новость опубликована.");
       await loadOverview();
     } catch (e: any) {
@@ -110,7 +116,6 @@ export default function SchoolAdminPage() {
       setSubmitting(false);
     }
   };
-
 
   const handleBroadcast = async () => {
     if (!tg) return;
@@ -243,6 +248,7 @@ export default function SchoolAdminPage() {
           Админ школы {data.school?.name ?? ""}
         </h1>
 
+        {/* Быстрая публикация новости */}
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Быстрая публикация новости</h2>
           <div className="space-y-2">
@@ -274,6 +280,7 @@ export default function SchoolAdminPage() {
           </button>
         </section>
 
+        {/* Отправить всей школе */}
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Отправить всей школе</h2>
           <textarea
@@ -290,32 +297,8 @@ export default function SchoolAdminPage() {
             Отправить всей школе
           </button>
         </section>
-          <p className="text-[11px] text-slate-400">
-            Эта новость сразу попадёт в общий фид школы.
-          </p>
-          <div className="space-y-2">
-            <input
-              className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs"
-              placeholder="Заголовок новости"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-            />
-            <textarea
-              className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs min-h-[80px]"
-              placeholder="Текст (опционально)"
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-            />
-          </div>
-          <button
-            disabled={submitting}
-            onClick={handleCreatePost}
-            className="rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:bg-slate-700 disabled:cursor-not-allowed px-4 py-2 text-xs font-medium"
-          >
-            {submitting ? "Публикация..." : "Опубликовать новость"}
-          </button>
-        </section>
 
+        {/* Предложенные новости */}
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Предложенные новости</h2>
           {data.suggestions && data.suggestions.length > 0 ? (
@@ -327,8 +310,16 @@ export default function SchoolAdminPage() {
                 >
                   <div className="font-semibold">{s.title}</div>
                   {s.author_name && (
-                    <div className="text-slate-400">
-                      от {s.author_name}
+                    <div className="text-slate-400">от {s.author_name}</div>
+                  )}
+                  {s.image_url && (
+                    <div className="mt-1 rounded-lg overflow-hidden border border-slate-800/80">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={s.image_url}
+                        alt={s.title}
+                        className="w-full max-h-40 object-cover"
+                      />
                     </div>
                   )}
                   {s.content && (
@@ -362,6 +353,7 @@ export default function SchoolAdminPage() {
           )}
         </section>
 
+        {/* Пользователи школы */}
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Пользователи школы</h2>
           {data.students && data.students.length > 0 ? (
