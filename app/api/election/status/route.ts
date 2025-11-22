@@ -13,77 +13,119 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tgId = String(telegramUser.id);
+    const telegramId = String(telegramUser.id);
 
-    const { data: userRow } = await supabaseAdmin
+    const { data: userRow, error: userErr } = await supabaseAdmin
       .from("users")
       .select("id, current_school_id")
-      .eq("telegram_id", tgId)
+      .eq("telegram_id", telegramId)
       .maybeSingle();
 
-    if (!userRow) {
+    if (userErr) {
+      console.error("user load error", userErr);
       return NextResponse.json(
-        { ok: false, error: "Пользователь не найден" },
-        { status: 404 }
+        { ok: false, error: "Ошибка пользователя" },
+        { status: 500 }
       );
     }
 
-    const schoolId = userRow.current_school_id;
-    if (!schoolId) {
+    if (!userRow?.current_school_id) {
       return NextResponse.json(
-        { ok: false, error: "Вы не в школе" },
+        { ok: false, error: "Вы ещё не выбрали школу" },
         { status: 400 }
       );
     }
 
-    // --- Получаем активные выборы
-    const { data: electionRow, error: electErr } = await supabaseAdmin
+    const schoolId = userRow.current_school_id as string;
+
+    const { data: schoolRow, error: schoolErr } = await supabaseAdmin
+      .from("schools")
+      .select("id, school_admin_id")
+      .eq("id", schoolId)
+      .maybeSingle();
+
+    if (schoolErr) {
+      console.error("school load error", schoolErr);
+      return NextResponse.json(
+        { ok: false, error: "Ошибка школы" },
+        { status: 500 }
+      );
+    }
+
+    const { data: electionRow, error: electionErr } = await supabaseAdmin
       .from("elections")
       .select("*")
       .eq("school_id", schoolId)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (electErr) {
-      console.error(electErr);
-      return NextResponse.json({ ok: false, error: "Ошибка выборов" });
+    if (electionErr) {
+      console.error("election load error", electionErr);
+      return NextResponse.json(
+        { ok: false, error: "Ошибка выборов" },
+        { status: 500 }
+      );
     }
 
     if (!electionRow) {
-      return NextResponse.json({ ok: true, election: null });
+      return NextResponse.json({
+        ok: true,
+        school_has_admin: !!schoolRow?.school_admin_id,
+        election: null,
+        candidates: [],
+        my_vote_candidate_id: null,
+      });
     }
 
-    // --- Получаем кандидатов
-    const { data: candidates } = await supabaseAdmin
+    const { data: candidates, error: candErr } = await supabaseAdmin
       .from("admin_candidates")
       .select("*")
       .eq("election_id", electionRow.id);
 
-    // --- Получаем ВСЕ голоса и считаем вручную
-    const { data: votes } = await supabaseAdmin
-      .from("votes")
-      .select("candidate_id")
-      .eq("election_id", electionRow.id);
-
-    const votesMap: Record<string, number> = {};
-
-    for (const v of votes ?? []) {
-      const cid = v.candidate_id;
-      votesMap[cid] = (votesMap[cid] || 0) + 1;
+    if (candErr) {
+      console.error("candidates load error", candErr);
     }
 
-    const resultCandidates = (candidates ?? []).map((c) => ({
+    const { data: votesAll, error: votesErr } = await supabaseAdmin
+      .from("votes")
+      .select("candidate_id, voter_user_id")
+      .eq("election_id", electionRow.id);
+
+    if (votesErr) {
+      console.error("votes load error", votesErr);
+    }
+
+    const votesMap: Record<string, number> = {};
+    let myVoteCandidateId: string | null = null;
+
+    for (const v of votesAll ?? []) {
+      const cid = v.candidate_id as string;
+      votesMap[cid] = (votesMap[cid] || 0) + 1;
+      if (v.voter_user_id === userRow.id) {
+        myVoteCandidateId = cid;
+      }
+    }
+
+    const candidatesWithCount = (candidates ?? []).map((c: any) => ({
       ...c,
       votes_count: votesMap[c.id] ?? 0,
     }));
 
     return NextResponse.json({
       ok: true,
-      election: electionRow,
-      candidates: resultCandidates,
+      school_has_admin: !!schoolRow?.school_admin_id,
+      election: {
+        id: electionRow.id,
+        status: electionRow.status,
+        starts_at: electionRow.starts_at,
+        ends_at: electionRow.ends_at,
+        winner_candidate_id: electionRow.winner_candidate_id,
+      },
+      candidates: candidatesWithCount,
+      my_vote_candidate_id: myVoteCandidateId,
     });
   } catch (err) {
-    console.error("Election status err:", err);
+    console.error("election status fatal", err);
     return NextResponse.json(
       { ok: false, error: "Серверная ошибка выборов" },
       { status: 500 }

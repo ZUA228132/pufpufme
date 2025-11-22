@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTelegram } from "../../../hooks/useTelegram";
 
 type Suggestion = {
@@ -43,6 +44,7 @@ type OverviewResponse = {
 
 export default function SchoolAdminPage() {
   const tg = useTelegram();
+  const router = useRouter();
 
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +113,7 @@ export default function SchoolAdminPage() {
 
   const handleSaveProfile = async () => {
     if (!tg || !data?.school) return;
+    tg.HapticFeedback?.impactOccurred("medium");
     setSubmitting(true);
     setStatusMsg(null);
     try {
@@ -140,6 +143,7 @@ export default function SchoolAdminPage() {
 
   const handleCreatePost = async () => {
     if (!tg) return;
+    tg.HapticFeedback?.impactOccurred("medium");
     if (!newTitle.trim()) {
       setStatusMsg("Введите заголовок новости");
       return;
@@ -284,6 +288,7 @@ export default function SchoolAdminPage() {
 
   const handleCreateInvite = async () => {
     if (!tg) return;
+    tg.HapticFeedback?.impactOccurred("medium");
     setSubmitting(true);
     setStatusMsg(null);
     try {
@@ -315,9 +320,21 @@ export default function SchoolAdminPage() {
 
   useEffect(() => {
     if (!tg) return;
+    if (tg.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        tg.HapticFeedback?.impactOccurred("light");
+        router.back();
+      });
+    }
     loadOverview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tg]);
+    return () => {
+      try {
+        tg.BackButton?.hide();
+      } catch {}
+    };
+  }, [tg, router]);
 
   if (loading && !data) {
     return (

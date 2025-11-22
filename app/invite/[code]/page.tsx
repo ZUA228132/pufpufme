@@ -32,6 +32,21 @@ export default function InviteJoinPage({ params }: { params: { code: string } })
     run();
   }, [tg, router, params.code]);
 
+
+  useEffect(() => {
+    if (!tg?.BackButton) return;
+    tg.BackButton.show();
+    tg.BackButton.onClick(() => {
+      tg.HapticFeedback?.impactOccurred("light");
+      router.back();
+    });
+    return () => {
+      try {
+        tg.BackButton?.hide();
+      } catch {}
+    };
+  }, [tg, router]);
+
   return (
     <main className="w-full max-w-xl">
       <div className="card p-6">

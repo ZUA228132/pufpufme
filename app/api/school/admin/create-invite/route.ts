@@ -64,7 +64,17 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = req.headers.get("origin") || "";
-  const url = origin ? `${origin}/invite/${code}` : `/invite/${code}`;
+  const webUrl = origin ? `${origin}/invite/${code}` : `/invite/${code}`;
 
-  return NextResponse.json({ ok: true, code, url });
+  const botUsername =
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT || "puff_school_bot";
+  const tgLink = `https://t.me/${botUsername}?startapp=invite_${code}`;
+
+  return NextResponse.json({
+    ok: true,
+    code,
+    url: tgLink,
+    web_url: webUrl,
+    tg_link: tgLink,
+  });
 }

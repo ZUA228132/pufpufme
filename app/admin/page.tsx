@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTelegram } from "../../hooks/useTelegram";
 
 type SchoolRequest = {
@@ -29,6 +30,7 @@ type OverviewResponse = {
 
 export default function AdminPage() {
   const tg = useTelegram();
+  const router = useRouter();
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -60,13 +62,25 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (tg) {
-      loadOverview();
+    if (!tg) return;
+    if (tg.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        tg.HapticFeedback?.impactOccurred("light");
+        router.back();
+      });
     }
-  }, [tg]);
+    loadOverview();
+    return () => {
+      try {
+        tg.BackButton?.hide();
+      } catch {}
+    };
+  }, [tg, router]);
 
   const handleRequestDecision = async (id: string, decision: "approved" | "rejected") => {
     if (!tg) return;
+    tg.HapticFeedback?.impactOccurred("medium");
     setSubmitting(true);
     setStatusMsg(null);
     try {

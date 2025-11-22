@@ -16,6 +16,13 @@ type Post = {
   views_count: number;
   liked_by_me: boolean;
 };
+type Comment = {
+  id: string;
+  content: string;
+  author_name: string | null;
+  created_at: string;
+};
+
 
 type School = {
   id: string;
@@ -41,6 +48,10 @@ export default function SchoolPage() {
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, Comment[]>>({});
+  const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +84,7 @@ export default function SchoolPage() {
 
   const handleToggleLike = async (postId: string) => {
     if (!tg) return;
+    tg.HapticFeedback?.impactOccurred("light");
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -98,6 +110,7 @@ export default function SchoolPage() {
 
   const handleSendComment = async (postId: string) => {
     if (!tg) return;
+    tg.HapticFeedback?.impactOccurred("light");
     const text = (commentDrafts[postId] || "").trim();
     if (!text) return;
     try {
@@ -122,11 +135,58 @@ export default function SchoolPage() {
     }
   };
 
-  useEffect(() => {
-    if (tg) {
-      loadFeed();
+  const handleToggleComments = async (postId: string) => {
+    if (!tg) return;
+    const isOpen = openComments[postId];
+    if (isOpen) {
+      setOpenComments((prev) => ({ ...prev, [postId]: false }));
+      return;
     }
-  }, [tg]);
+    // открыть и, если нужно, загрузить
+    setOpenComments((prev) => ({ ...prev, [postId]: true }));
+    if (commentsByPost[postId]?.length) {
+      return;
+    }
+    setCommentsLoading((prev) => ({ ...prev, [postId]: true }));
+    try {
+      const user = tg.initDataUnsafe?.user;
+      const res = await fetch("/api/school/post/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramUser: user, postId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Ошибка загрузки комментариев");
+      }
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: json.comments as Comment[],
+      }));
+    } catch (e) {
+      // тихо игнорим, можно будет добавить тост
+    } finally {
+      setCommentsLoading((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+
+  useEffect(() => {
+    if (!tg) return;
+    if (tg.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        tg.HapticFeedback?.impactOccurred("light");
+        router.back();
+      });
+    }
+    loadFeed();
+    return () => {
+      try {
+        tg.BackButton?.hide();
+      } catch {}
+    };
+  }, [tg, router]);
 
   const handleElection = () => router.push("/school/election");
   const handleAdminPanel = () => router.push("/school/admin");
@@ -148,7 +208,7 @@ export default function SchoolPage() {
         </div>
 
         {/* Профиль школы */}
-        <div className="px-4 pb-4 -mt-8 flex items-end gap-3">
+        <div className="px-4 pb-4 flex items-end gap-3">
           <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center overflow-hidden">
             {school?.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -263,7 +323,48 @@ export default function SchoolPage() {
                     <span>{p.views_count}</span>
                   </div>
                 </div>
+                <button
+                  onClick={() => handleToggleComments(p.id)}
+                  className="text-[11px] text-slate-400 underline-offset-2 active:scale-95"
+                >
+                  {openComments[p.id]
+                    ? "Скрыть комментарии"
+                    : commentsLoading[p.id]
+                    ? "Загрузка..."
+                    : "Показать комментарии"}
+                </button>
               </div>
+              {openComments[p.id] && (
+                <div className="mt-1 space-y-1 max-h-40 overflow-y-auto pr-1">
+                  {commentsByPost[p.id]?.length ? (
+                    commentsByPost[p.id].map((c) => (
+                      <div
+                        key={c.id}
+                        className="rounded-xl bg-slate-900/80 border border-slate-800 px-2 py-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-medium text-slate-100">
+                            {c.author_name || "Участник"}
+                          </span>
+                          <span className="text-[9px] text-slate-500">
+                            {new Date(c.created_at).toLocaleTimeString("ru-RU", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-[2px] text-[11px] text-slate-200 whitespace-pre-wrap">
+                          {c.content}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[11px] text-slate-500">
+                      Пока нет комментариев
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="mt-1 flex items-center gap-2">
                 <input
                   className="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-1 text-[11px]"
