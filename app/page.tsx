@@ -28,6 +28,13 @@ export default function HomePage() {
     user?.username?.[0] ||
     "👤";
 
+  const displayName =
+    user?.first_name && user?.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user?.first_name ??
+        user?.username ??
+        "Без имени";
+
   return (
     <main className="w-full max-w-md">
       <div className="card p-6 space-y-6">
@@ -35,17 +42,20 @@ export default function HomePage() {
           <div>
             <div className="badge-pill text-slate-200/80">
               <span className="text-[10px]">new</span>
-              <span>puff school hub</span>
+              <span>puff hub by WUSVA</span>
             </div>
             <h1 className="mt-3 text-3xl font-bold tracking-tight">
               PUFF
             </h1>
             <p className="mt-1 text-sm text-slate-300">
-              Молодёжное школьное сообщество прямо в Telegram.
+              Лучшее школьное сообщество прямо в Telegram.
+            </p>
+            <p className="mt-2 text-xs text-slate-400">
+              Ты: <span className="font-medium text-slate-100">{displayName}</span>
             </p>
           </div>
           <div className="relative">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-xl font-semibold shadow-soft">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-xl font-semibold shadow-soft overflow-hidden">
               {user?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
