@@ -66,6 +66,7 @@ create table if not exists public.posts (
   author_user_id uuid references public.users (id),
   title text not null,
   content text,
+  image_url text,
   status text not null default 'pending', -- pending / published / rejected
   is_pinned boolean not null default false,
   created_at timestamptz default now()
@@ -112,6 +113,7 @@ create table if not exists public.post_suggestions (
   author_user_id uuid not null references public.users (id) on delete cascade,
   title text not null,
   content text,
+  image_url text,
   status text not null default 'pending', -- pending / approved / rejected
   reviewed_by_user_id uuid references public.users (id),
   reviewed_at timestamptz,
@@ -128,5 +130,29 @@ create table if not exists public.school_bans (
   active boolean not null default true,
   created_at timestamptz default now(),
   unbanned_at timestamptz
+);
+
+
+-- Рассылки по школе (для кнопки "отправить всей школе")
+create table if not exists public.broadcasts (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  author_user_id uuid not null references public.users (id) on delete cascade,
+  text text not null,
+  created_at timestamptz default now(),
+  processed boolean not null default false
+);
+
+-- Жалобы на пользователей
+create table if not exists public.user_reports (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  reporter_user_id uuid not null references public.users (id) on delete cascade,
+  reported_user_id uuid not null references public.users (id) on delete cascade,
+  reason text,
+  status text not null default 'pending_school', -- pending_school / resolved_ban / rejected / escalated
+  created_at timestamptz default now(),
+  resolved_at timestamptz,
+  resolved_by_user_id uuid references public.users (id)
 );
 

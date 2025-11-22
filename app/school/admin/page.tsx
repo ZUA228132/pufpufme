@@ -43,6 +43,8 @@ export default function SchoolAdminPage() {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [broadcastText, setBroadcastText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const loadOverview = async () => {
@@ -91,6 +93,7 @@ export default function SchoolAdminPage() {
           telegramUser: user,
           title: newTitle,
           content: newContent,
+          imageUrl: newImageUrl,
         }),
       });
       const json = await res.json();
@@ -101,6 +104,38 @@ export default function SchoolAdminPage() {
       setNewContent("");
       setStatusMsg("Новость опубликована.");
       await loadOverview();
+    } catch (e: any) {
+      setStatusMsg(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+  const handleBroadcast = async () => {
+    if (!tg) return;
+    if (!broadcastText.trim()) {
+      setStatusMsg("Введите текст рассылки.");
+      return;
+    }
+    setSubmitting(true);
+    setStatusMsg(null);
+    try {
+      const user = tg.initDataUnsafe?.user;
+      const res = await fetch("/api/school/admin/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegramUser: user,
+          text: broadcastText,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Ошибка отправки рассылки");
+      }
+      setBroadcastText("");
+      setStatusMsg("Рассылка сохранена. Отправка идёт через бота.");
     } catch (e: any) {
       setStatusMsg(e.message);
     } finally {
@@ -210,6 +245,51 @@ export default function SchoolAdminPage() {
 
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Быстрая публикация новости</h2>
+          <div className="space-y-2">
+            <input
+              className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs"
+              placeholder="Заголовок новости"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+            />
+            <textarea
+              className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs min-h-[80px]"
+              placeholder="Текст (опционально)"
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+            />
+            <input
+              className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs"
+              placeholder="Картинка (URL, опционально)"
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+            />
+          </div>
+          <button
+            disabled={submitting}
+            onClick={handleCreatePost}
+            className="rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:bg-slate-700 disabled:cursor-not-allowed px-4 py-2 text-xs font-medium"
+          >
+            {submitting ? "Публикация..." : "Опубликовать новость"}
+          </button>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">Отправить всей школе</h2>
+          <textarea
+            className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs min-h-[60px]"
+            placeholder="Текст уведомления"
+            value={broadcastText}
+            onChange={(e) => setBroadcastText(e.target.value)}
+          />
+          <button
+            disabled={submitting}
+            onClick={handleBroadcast}
+            className="rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:bg-slate-700 disabled:cursor-not-allowed px-4 py-2 text-xs font-medium"
+          >
+            Отправить всей школе
+          </button>
+        </section>
           <p className="text-[11px] text-slate-400">
             Эта новость сразу попадёт в общий фид школы.
           </p>

@@ -3,7 +3,7 @@ import { supabaseAdmin } from "../../../../../lib/supabaseAdmin";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { telegramUser, title, content } = body || {};
+  const { telegramUser, title, content, imageUrl } = body || {};
 
   if (!telegramUser?.id || !title) {
     return NextResponse.json(
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     school_id: schoolId,
     title,
     content: content || null,
+    image_url: imageUrl || null,
     status: "published",
   });
 

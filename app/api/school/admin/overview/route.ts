@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   const { data: suggestions } = await supabaseAdmin
     .from("post_suggestions")
     .select(
-      "id, title, content, created_at, author_user_id, users:author_user_id(display_name)"
+      "id, title, content, image_url, created_at, author_user_id, users:author_user_id(first_name, last_name, username)"
     )
     .eq("school_id", schoolId)
     .eq("status", "pending")
@@ -93,7 +93,11 @@ export async function POST(req: NextRequest) {
       content: (s.content as string | null) ?? null,
       created_at: s.created_at as string,
       author_name:
-        (s.users && (s.users.display_name as string | null)) ?? null,
+        s.users
+          ? ((s.users.first_name && s.users.last_name)
+              ? `${s.users.first_name} ${s.users.last_name}`
+              : (s.users.username as string | null) ?? s.users.first_name ?? null)
+          : null,
     })) ?? [];
 
   return NextResponse.json({

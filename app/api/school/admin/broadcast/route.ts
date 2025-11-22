@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { supabaseAdmin } from "../../../../../lib/supabaseAdmin";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { telegramUser, title, content, imageUrl } = body || {};
+  const { telegramUser, text } = body || {};
 
-  if (!telegramUser?.id || !title) {
+  if (!telegramUser?.id || !text) {
     return NextResponse.json(
       { error: "Недостаточно данных" },
       { status: 400 }
@@ -29,19 +29,29 @@ export async function POST(req: NextRequest) {
 
   const schoolId = userRow.current_school_id as string;
 
-  const { error } = await supabaseAdmin.from("post_suggestions").insert({
+  const { data: schoolRow, error: schoolErr } = await supabaseAdmin
+    .from("schools")
+    .select("id, school_admin_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+
+  if (schoolErr || !schoolRow || schoolRow.school_admin_id !== userRow.id) {
+    return NextResponse.json(
+      { error: "Вы не являетесь админом этой школы" },
+      { status: 403 }
+    );
+  }
+
+  const { error } = await supabaseAdmin.from("broadcasts").insert({
     school_id: schoolId,
     author_user_id: userRow.id,
-    title,
-    content: content || null,
-    image_url: imageUrl || null,
-    status: "pending",
+    text,
   });
 
   if (error) {
-    console.error("Error inserting post suggestion", error);
+    console.error("Error inserting broadcast", error);
     return NextResponse.json(
-      { error: "Ошибка создания предложения новости" },
+      { error: "Ошибка сохранения рассылки" },
       { status: 500 }
     );
   }

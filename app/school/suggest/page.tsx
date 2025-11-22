@@ -9,6 +9,7 @@ export default function SuggestPostPage() {
   const tg = useTelegram();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +72,17 @@ export default function SuggestPostPage() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Подробности, время, место..."
             />
+          
+          <label className="block text-sm">
+            <span className="text-slate-300">Картинка (URL, опционально)</span>
+            <input
+              className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+            />
           </label>
+</label>
         </div>
 
         <button
