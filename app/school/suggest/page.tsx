@@ -53,10 +53,6 @@ export default function SuggestPostPage() {
     <main className="w-full max-w-xl">
       <div className="card p-6 space-y-4">
         <h1 className="text-xl font-semibold">Предложить новость</h1>
-        <p className="text-sm text-slate-300">
-          Ваше предложение увидит админ школы и при необходимости опубликует в общем фиде.
-        </p>
-
         <div className="space-y-3">
           <label className="block text-sm">
             <span className="text-slate-300">Заголовок</span>

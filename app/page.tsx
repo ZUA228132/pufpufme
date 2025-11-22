@@ -17,57 +17,59 @@ export default function HomePage() {
   const [user, setUser] = useState<TgUser | null>(null);
 
   useEffect(() => {
-    if (tg) {
-      setUser(tg.initDataUnsafe?.user ?? null);
-    }
+    if (!tg) return;
+    const u = tg.initDataUnsafe?.user as TgUser | undefined;
+    if (u) setUser(u);
   }, [tg]);
 
-  return (
-    <main className="w-full max-w-xl">
-      <div className="card p-6 space-y-4">
-        <h1 className="text-2xl font-semibold text-white">
-          TG School Hub
-        </h1>
-        <p className="text-sm text-slate-300">
-          Школьное сообщество для вашего города. Новости, голосования за админа школы,
-          чаты классов и многое другое.
-        </p>
+  const initials =
+    user?.first_name?.[0] ||
+    user?.last_name?.[0] ||
+    user?.username?.[0] ||
+    "👤";
 
-        {user ? (
-          <div className="flex items-center gap-3 mt-2">
-            {user.photo_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.photo_url}
-                alt="avatar"
-                className="w-10 h-10 rounded-full border border-slate-700"
-              />
-            )}
-            <div>
-              <div className="font-medium">
-                {user.first_name} {user.last_name}
-              </div>
-              {user.username && (
-                <div className="text-xs text-slate-400">@{user.username}</div>
+  return (
+    <main className="w-full max-w-md">
+      <div className="card p-6 space-y-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="badge-pill text-slate-200/80">
+              <span className="text-[10px]">new</span>
+              <span>puff school hub</span>
+            </div>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight">
+              PUFF
+            </h1>
+            <p className="mt-1 text-sm text-slate-300">
+              Молодёжное школьное сообщество прямо в Telegram.
+            </p>
+          </div>
+          <div className="relative">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-xl font-semibold shadow-soft">
+              {user?.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.photo_url}
+                  alt="avatar"
+                  className="h-full w-full rounded-2xl object-cover"
+                />
+              ) : (
+                <span>{initials}</span>
               )}
             </div>
           </div>
-        ) : (
-          <div className="text-sm text-amber-300">
-            Откройте это приложение внутри Telegram как WebApp, чтобы продолжить.
-          </div>
-        )}
+        </div>
 
-        <div className="pt-4 flex flex-col gap-3">
+        <div className="space-y-3">
+          <p className="text-xs text-slate-300">
+            Регистрация занимает меньше минуты: выбираешь город и школу — и ты в потоке.
+          </p>
           <Link
             href="/onboarding"
-            className="inline-flex items-center justify-center rounded-2xl bg-brand-500 hover:bg-brand-600 transition px-4 py-2 text-sm font-medium"
+            className="inline-flex w-full items-center justify-center rounded-2xl bg-brand-500 hover:bg-brand-600 px-4 py-2.5 text-sm font-semibold transition"
           >
-            Продолжить
+            Войти в PUFF
           </Link>
-          <p className="text-[11px] text-slate-500">
-            При первом входе мы запросим только город и школу. Имя и аватар берём из вашего Telegram.
-          </p>
         </div>
       </div>
     </main>

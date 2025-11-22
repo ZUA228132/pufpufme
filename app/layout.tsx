@@ -3,8 +3,8 @@ import "./globals.css";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "TG School Hub",
-  description: "Школьное телеграм-сообщество для городов и школ",
+  title: "PUFF",
+  description: "PUFF — школьное сообщество в Telegram",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className="min-h-screen">
+      <body className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-50">
         <div className="min-h-screen flex items-center justify-center px-4">
           {children}
         </div>

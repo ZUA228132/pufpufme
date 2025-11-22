@@ -284,9 +284,6 @@ export default function SchoolAdminPage() {
 
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Пользователи школы</h2>
-          <p className="text-[11px] text-slate-400">
-            Здесь можно заблокировать или разблокировать пользователя внутри школы.
-          </p>
           {data.students && data.students.length > 0 ? (
             <div className="space-y-1 max-h-52 overflow-auto pr-1">
               {data.students.map((st) => (

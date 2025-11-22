@@ -3,9 +3,13 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-950 text-slate-50;
+  @apply text-slate-50;
 }
 
 .card {
-  @apply bg-slate-900/70 border border-slate-800 rounded-2xl shadow-soft;
+  @apply bg-slate-900/80 border border-white/10 rounded-3xl shadow-soft backdrop-blur-xl;
+}
+
+.badge-pill {
+  @apply inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wide;
 }
