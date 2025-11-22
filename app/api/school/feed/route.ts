@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
       banner_url: (schoolRow.banner_url as string | null) ?? null,
       is_premium: !!schoolRow.is_premium,
       is_admin: schoolRow.school_admin_id === userRow.id,
+      has_admin: !!schoolRow.school_admin_id,
     },
     posts: (postsWithMeta ?? []).map((p: any) => ({
       ...p,

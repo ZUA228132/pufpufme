@@ -32,6 +32,7 @@ type School = {
   banner_url: string | null;
   is_premium: boolean;
   is_admin: boolean;
+  has_admin?: boolean;
 };
 
 type FeedResponse = {
@@ -250,12 +251,14 @@ export default function SchoolPage() {
           >
             + Новость
           </button>
-          <button
-            onClick={handleElection}
-            className="rounded-2xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs"
-          >
-            Голосование
-          </button>
+          {!school?.has_admin && (
+            <button
+              onClick={handleElection}
+              className="rounded-2xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs"
+            >
+              Голосование
+            </button>
+          )}
           {school?.is_admin && (
             <button
               onClick={handleAdminPanel}
