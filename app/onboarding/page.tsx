@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 type City = { id: string; name: string };
 type School = { id: string; name: string };
 
-type Mode = "choose" | "request";
-
 export default function OnboardingPage() {
   const tg = useTelegram();
   const router = useRouter();
@@ -16,334 +14,303 @@ export default function OnboardingPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
 
-  const [selectedCityId, setSelectedCityId] = useState<string>("");
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+  const [cityId, setCityId] = useState<string>("");
+  const [schoolId, setSchoolId] = useState<string>("");
 
-  const [mode, setMode] = useState<Mode>("choose");
+  const [citySearch, setCitySearch] = useState("");
+  const [schoolSearch, setSchoolSearch] = useState("");
 
-  const [cityNameInput, setCityNameInput] = useState<string>("");
-  const [schoolNameInput, setSchoolNameInput] = useState<string>("");
-  const [addressInput, setAddressInput] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(true);
 
-  const [loading, setLoading] = useState<boolean>(false);
+  const [requestMode, setRequestMode] = useState(false);
+  const [cityName, setCityName] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [address, setAddress] = useState("");
   const [status, setStatus] = useState<string | null>(null);
 
-  // Загрузка городов
+  // Проверка статуса пользователя
+  useEffect(() => {
+    if (!tg) return;
+    const checkUser = async () => {
+      try {
+        const user = tg.initDataUnsafe?.user;
+        if (!user) {
+          setCheckingUser(false);
+          return;
+        }
+
+        const res = await fetch("/api/users/me", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramUser: user }),
+        });
+
+        if (!res.ok) {
+          setCheckingUser(false);
+          return;
+        }
+
+        const data = await res.json();
+        const u = data.user;
+
+        if (u?.is_global_admin) {
+          router.replace("/admin");
+          return;
+        }
+
+        if (u?.current_school_id) {
+          router.replace("/school");
+          return;
+        }
+
+        setCheckingUser(false);
+      } catch (e) {
+        setCheckingUser(false);
+      }
+    };
+
+    checkUser();
+  }, [tg, router]);
+
+  // Грузим города
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await fetch("/api/meta/cities");
-        const json = await res.json();
-        setCities(json.cities ?? []);
-      } catch (e) {
-        console.error("load cities error", e);
-      }
+      const res = await fetch("/api/meta/cities");
+      const data = await res.json();
+      setCities(data.cities ?? []);
     };
     load();
   }, []);
 
-  // Telegram UI (BackButton + стили)
+  // Грузим школы
   useEffect(() => {
-    if (!tg) return;
-
-    try {
-      tg.BackButton.show();
-      tg.BackButton.onClick(() => {
-        tg.HapticFeedback?.impactOccurred("light");
-        router.back();
-      });
-    } catch {
-      // ignore
-    }
-
-    return () => {
-      try {
-        tg.BackButton?.hide();
-      } catch {
-        // ignore
+    const load = async () => {
+      if (!cityId) {
+        setSchools([]);
+        return;
       }
+      const res = await fetch(`/api/meta/schools?cityId=${cityId}`);
+      const data = await res.json();
+      setSchools(data.schools ?? []);
     };
-  }, [tg, router]);
+    load();
+  }, [cityId]);
 
-  const loadSchoolsForCity = async (cityId: string) => {
-    if (!cityId) {
-      setSchools([]);
-      setSelectedSchoolId("");
+  const handleSubmit = async () => {
+    if (!tg) {
+      setStatus("Откройте приложение внутри Telegram.");
       return;
     }
-    try {
-      const res = await fetch(`/api/meta/schools?cityId=${encodeURIComponent(cityId)}`);
-      const json = await res.json();
-      setSchools(json.schools ?? []);
-      setSelectedSchoolId("");
-    } catch (e) {
-      console.error("load schools error", e);
-      setSchools([]);
-    }
-  };
-
-  const handleCityChange = async (cityId: string) => {
-    setSelectedCityId(cityId);
-    setMode("choose");
+    setLoading(true);
     setStatus(null);
-
-    const city = cities.find((c) => c.id === cityId);
-    setCityNameInput(city?.name ?? "");
-
-    await loadSchoolsForCity(cityId);
-  };
-
-  const handleRegister = async () => {
-    if (!tg) return;
-    const user = tg.initDataUnsafe?.user;
-    if (!user || !selectedCityId || !selectedSchoolId) return;
-
     try {
-      setLoading(true);
-      setStatus(null);
-      tg.HapticFeedback?.impactOccurred("light");
-
+      const user = tg.initDataUnsafe?.user;
       const res = await fetch("/api/onboarding/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           telegramUser: user,
-          cityId: selectedCityId,
-          schoolId: selectedSchoolId,
+          cityId,
+          schoolId,
         }),
       });
-
-      const json = await res.json();
-      if (json.error) {
-        setStatus(json.error || "Не удалось завершить регистрацию");
-        tg.HapticFeedback?.notificationOccurred("error");
-        return;
-      }
-
-      setStatus("Готово! Открываем вашу школу…");
-      tg.HapticFeedback?.notificationOccurred("success");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Ошибка регистрации");
       router.replace("/school");
-    } catch (e) {
-      console.error("register error", e);
-      setStatus("Произошла ошибка при регистрации");
-      tg?.HapticFeedback?.notificationOccurred("error");
+    } catch (e: any) {
+      setStatus(e.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRequestSchool = async () => {
-    if (!tg) return;
-    const user = tg.initDataUnsafe?.user;
-    if (!user || !cityNameInput || !schoolNameInput) return;
-
+    if (!tg) {
+      setStatus("Откройте приложение внутри Telegram.");
+      return;
+    }
+    if (!cityName || !schoolName) {
+      setStatus("Укажите город и школу.");
+      return;
+    }
+    setLoading(true);
+    setStatus(null);
     try {
-      setLoading(true);
-      setStatus(null);
-      tg.HapticFeedback?.impactOccurred("light");
-
+      const user = tg.initDataUnsafe?.user;
       const res = await fetch("/api/onboarding/request-school", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           telegramUser: user,
-          cityName: cityNameInput,
-          schoolName: schoolNameInput,
-          address: addressInput || null,
+          cityName,
+          schoolName,
+          address,
         }),
       });
-
-      const json = await res.json();
-      if (json.error) {
-        setStatus(json.error || "Не удалось отправить заявку");
-        tg.HapticFeedback?.notificationOccurred("error");
-        return;
-      }
-
-      setStatus(
-        "Заявка отправлена! Как только админ подтвердит школу, вы сможете к ней подключиться."
-      );
-      tg.HapticFeedback?.notificationOccurred("success");
-      setMode("choose");
-    } catch (e) {
-      console.error("request school error", e);
-      setStatus("Произошла ошибка при отправке заявки");
-      tg?.HapticFeedback?.notificationOccurred("error");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Ошибка отправки заявки");
+      setStatus("Заявка отправлена главному администратору. Вам придёт уведомление после одобрения.");
+      setRequestMode(false);
+    } catch (e: any) {
+      setStatus(e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedCity = cities.find((c) => c.id === selectedCityId);
+  const filteredCities = cities.filter((c) =>
+    c.name.toLowerCase().includes(citySearch.toLowerCase())
+  );
+  const filteredSchools = schools.filter((s) =>
+    s.name.toLowerCase().includes(schoolSearch.toLowerCase())
+  );
+
+  if (checkingUser) {
+    return (
+      <main className="w-full max-w-xl">
+        <div className="card p-6">
+          <p className="text-sm text-slate-300">
+            Проверяем ваш статус в системе...
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="w-full max-w-xl">
-      <div className="card p-6 space-y-5">
-        <div>
-          <h1 className="text-xl font-semibold">Выбор школы</h1>
-          <p className="mt-1 text-xs text-slate-300">
-            Сначала выбери город, затем школу. Если школы ещё нет — отправь заявку на добавление.
-          </p>
-        </div>
-
-        {/* Шаг 1 — город */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-200">
-            Город
-          </label>
-          <select
-            value={selectedCityId}
-            onChange={(e) => handleCityChange(e.target.value)}
-            className="w-full rounded-2xl bg-slate-900/80 border border-slate-700 px-3 py-2 text-sm outline-none"
-          >
-            <option value="">Выбери город…</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Шаг 2 — школа, если город выбран */}
-        {selectedCityId && mode === "choose" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-200">
-              Школа
-            </label>
-            {schools.length > 0 ? (
-              <>
-                <select
-                  value={selectedSchoolId}
-                  onChange={(e) => setSelectedSchoolId(e.target.value)}
-                  className="w-full rounded-2xl bg-slate-900/80 border border-slate-700 px-3 py-2 text-sm outline-none"
-                >
-                  <option value="">Выбери школу…</option>
-                  {schools.map((school) => (
-                    <option key={school.id} value={school.id}>
-                      {school.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="text-[11px] text-slate-400 underline underline-offset-2"
-                  onClick={() => {
-                    setMode("request");
-                    setSchoolNameInput("");
-                    setAddressInput("");
-                    setStatus(null);
-                    if (selectedCity) {
-                      setCityNameInput(selectedCity.name);
-                    }
-                  }}
-                >
-                  Моей школы нет в списке
-                </button>
-              </>
-            ) : (
-              <div className="rounded-2xl bg-slate-900/80 border border-dashed border-slate-700 px-3 py-3 text-xs text-slate-300 space-y-2">
-                <p>В этом городе ещё нет школ в PUFF.</p>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-[11px] text-brand-300 underline underline-offset-2"
-                  onClick={() => {
-                    setMode("request");
-                    setSchoolNameInput("");
-                    setAddressInput("");
-                    setStatus(null);
-                    if (selectedCity) {
-                      setCityNameInput(selectedCity.name);
-                    }
-                  }}
-                >
-                  Отправить заявку на добавление школы
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Режим запроса новой школы */}
-        {mode === "request" && (
-          <div className="space-y-3 rounded-2xl bg-slate-900/70 border border-slate-700 p-3">
-            <p className="text-xs font-semibold text-slate-200">
-              Заявка на добавление школы
+      <div className="card p-6 space-y-4">
+        <h1 className="text-xl font-semibold">Регистрация</h1>
+        {!requestMode ? (
+          <>
+            <p className="text-sm text-slate-300">
+              Выберите ваш город и школу. Если школы нет в списке — подайте заявку на подключение.
             </p>
-            <div className="space-y-1">
-              <label className="text-[11px] text-slate-300">
-                Город
+
+            <div className="space-y-2">
+              <label className="block text-sm">
+                <span className="text-slate-300">Город</span>
+                <input
+                  className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                  placeholder="Начните вводить название города"
+                  value={citySearch}
+                  onChange={(e) => setCitySearch(e.target.value)}
+                />
               </label>
-              <input
-                value={cityNameInput}
-                onChange={(e) => setCityNameInput(e.target.value)}
-                className="w-full rounded-2xl bg-slate-950/50 border border-slate-700 px-3 py-2 text-sm outline-none"
-                placeholder="Например: Киев"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-slate-300">
-                Название школы
-              </label>
-              <input
-                value={schoolNameInput}
-                onChange={(e) => setSchoolNameInput(e.target.value)}
-                className="w-full rounded-2xl bg-slate-950/50 border border-slate-700 px-3 py-2 text-sm outline-none"
-                placeholder="Например: Лицей №123"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-slate-300">
-                Адрес (по желанию)
-              </label>
-              <input
-                value={addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
-                className="w-full rounded-2xl bg-slate-950/50 border border-slate-700 px-3 py-2 text-sm outline-none"
-                placeholder="Улица, дом"
-              />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={handleRequestSchool}
-                disabled={loading || !cityNameInput || !schoolNameInput}
-                className="flex-1 rounded-2xl bg-brand-500 hover:bg-brand-600 px-4 py-2 text-xs font-semibold disabled:opacity-60 disabled:pointer-events-none"
-              >
-                Отправить заявку
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("choose");
-                  setStatus(null);
+              <select
+                className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                size={6}
+                value={cityId}
+                onChange={(e) => {
+                  setCityId(e.target.value);
+                  setSchoolId("");
+                  setSchoolSearch("");
                 }}
-                className="rounded-2xl border border-slate-700 px-4 py-2 text-xs"
               >
-                Вернуться к выбору школы
-              </button>
+                <option value="">— выберите город —</option>
+                {filteredCities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-        )}
 
-        {/* Кнопка регистрации в обычном режиме */}
-        {mode === "choose" && (
-          <button
-            type="button"
-            onClick={handleRegister}
-            disabled={
-              loading ||
-              !selectedCityId ||
-              !selectedSchoolId
-            }
-            className="w-full rounded-2xl bg-brand-500 hover:bg-brand-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-60 disabled:pointer-events-none"
-          >
-            Продолжить
-          </button>
-        )}
+            <div className="space-y-2">
+              <label className="block text-sm">
+                <span className="text-slate-300">Школа</span>
+                <input
+                  className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                  placeholder="Начните вводить название школы"
+                  value={schoolSearch}
+                  onChange={(e) => setSchoolSearch(e.target.value)}
+                  disabled={!cityId}
+                />
+              </label>
+              <select
+                className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                size={6}
+                value={schoolId}
+                onChange={(e) => setSchoolId(e.target.value)}
+                disabled={!cityId}
+              >
+                <option value="">— выберите школу —</option>
+                {filteredSchools.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            <button
+              disabled={!cityId || !schoolId || loading}
+              onClick={handleSubmit}
+              className="w-full mt-2 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:bg-slate-700 disabled:cursor-not-allowed px-4 py-2 text-sm font-medium"
+            >
+              {loading ? "Сохранение..." : "Продолжить"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRequestMode(true)}
+              className="w-full text-xs text-slate-400 underline underline-offset-4 mt-2"
+            >
+              Моего города или школы нет в списке
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-slate-300">
+              Заполните заявку на подключение новой школы. Главный админ проверит её и создаст профиль школы.
+            </p>
+            <div className="space-y-3">
+              <label className="block text-sm">
+                <span className="text-slate-300">Город</span>
+                <input
+                  className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                  value={cityName}
+                  onChange={(e) => setCityName(e.target.value)}
+                  placeholder="Например: Москва"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-slate-300">Школа</span>
+                <input
+                  className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                  value={schoolName}
+                  onChange={(e) => setSchoolName(e.target.value)}
+                  placeholder='Например: Школа №123 "Лицей"'
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-slate-300">Адрес (опционально)</span>
+                <input
+                  className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Адрес школы"
+                />
+              </label>
+            </div>
+            <button
+              disabled={loading}
+              onClick={handleRequestSchool}
+              className="w-full mt-2 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:bg-slate-700 disabled:cursor-not-allowed px-4 py-2 text-sm font-medium"
+            >
+              {loading ? "Отправка..." : "Отправить заявку"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRequestMode(false)}
+              className="w-full text-xs text-slate-400 underline underline-offset-4 mt-2"
+            >
+              Вернуться к выбору школы
+            </button>
+          </>
+        )}
         {status && (
-          <div className="mt-1 text-xs text-slate-200">
+          <div className="mt-3 text-xs text-slate-200">
             {status}
           </div>
         )}

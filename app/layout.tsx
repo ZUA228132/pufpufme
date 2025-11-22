@@ -21,8 +21,8 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-50">
-        <div className="min-h-screen w-full flex justify-center">
-          <div className="w-full max-w-xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div className="min-h-screen flex justify-center">
+          <div className="w-full max-w-xl px-4 pt-4 pb-6">
             {children}
           </div>
         </div>

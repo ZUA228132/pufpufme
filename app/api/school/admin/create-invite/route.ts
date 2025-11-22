@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   const webUrl = origin ? `${origin}/invite/${code}` : `/invite/${code}`;
 
   const botUsername =
-    process.env.NEXT_PUBLIC_TELEGRAM_BOT || "puff_school_bot";
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT || "puffslbot";
   const tgLink = `https://t.me/${botUsername}?startapp=invite_${code}`;
 
   return NextResponse.json({
