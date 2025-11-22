@@ -103,3 +103,30 @@ create table if not exists public.votes (
   created_at timestamptz default now(),
   unique (election_id, voter_user_id)
 );
+
+
+-- Предложенные новости (от обычных пользователей)
+create table if not exists public.post_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  author_user_id uuid not null references public.users (id) on delete cascade,
+  title text not null,
+  content text,
+  status text not null default 'pending', -- pending / approved / rejected
+  reviewed_by_user_id uuid references public.users (id),
+  reviewed_at timestamptz,
+  review_comment text,
+  created_at timestamptz default now()
+);
+
+-- Баны внутри школы
+create table if not exists public.school_bans (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  reason text,
+  active boolean not null default true,
+  created_at timestamptz default now(),
+  unbanned_at timestamptz
+);
+

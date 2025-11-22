@@ -30,13 +30,34 @@ export default function SchoolPage() {
       <div className="card p-6 space-y-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-xl font-semibold">Новости вашей школы</h1>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => router.push("/school/election")}
+              className="text-xs rounded-xl border border-slate-700 px-3 py-1 hover:bg-slate-800"
+            >
+              Голосование за админа
+            </button>
+            <button
+              onClick={() => router.push("/school/admin")}
+              className="text-[11px] rounded-xl border border-brand-500 px-3 py-1 hover:bg-brand-500 hover:text-white"
+            >
+              Управление школой
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
           <button
-            onClick={() => router.push("/school/election")}
-            className="text-xs rounded-xl border border-slate-700 px-3 py-1 hover:bg-slate-800"
+            onClick={() => router.push("/school/suggest")}
+            className="flex-1 rounded-2xl bg-slate-800 hover:bg-slate-700 px-3 py-2 text-xs text-left"
           >
-            Голосование за админа
+            + Предложить новость
+            <span className="block text-[11px] text-slate-400">
+              Админ школы сможет опубликовать её в общий фид
+            </span>
           </button>
         </div>
+
         {loading ? (
           <div className="text-sm text-slate-300">Загрузка...</div>
         ) : posts.length === 0 ? (
