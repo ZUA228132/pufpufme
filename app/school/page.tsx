@@ -36,7 +36,10 @@ export default function SchoolPage() {
         ) : (
           <div className="space-y-3">
             {posts.map((p) => (
-              <article key={p.id} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
+              <article
+                key={p.id}
+                className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3"
+              >
                 <h2 className="text-sm font-semibold">{p.title}</h2>
                 {p.content && (
                   <p className="mt-1 text-xs text-slate-300 whitespace-pre-wrap">

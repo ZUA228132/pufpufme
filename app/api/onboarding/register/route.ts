@@ -11,25 +11,27 @@ export async function POST(req: NextRequest) {
 
   const telegramId = String(telegramUser.id);
 
+  const upsertPayload = {
+    telegram_id: telegramId,
+    username: telegramUser.username ?? null,
+    first_name: telegramUser.first_name ?? null,
+    last_name: telegramUser.last_name ?? null,
+    photo_url: telegramUser.photo_url ?? null,
+    current_school_id: schoolId,
+  };
+
   const { data: user, error } = await supabaseAdmin
     .from("users")
-    .upsert(
-      {
-        telegram_id: telegramId,
-        username: telegramUser.username ?? null,
-        first_name: telegramUser.first_name ?? null,
-        last_name: telegramUser.last_name ?? null,
-        photo_url: telegramUser.photo_url ?? null,
-        current_school_id: schoolId,
-      },
-      { onConflict: "telegram_id" }
-    )
+    .upsert(upsertPayload, { onConflict: "telegram_id" })
     .select("*")
     .single();
 
   if (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Ошибка сохранения пользователя" }, { status: 500 });
+    console.error("Error upserting user", error);
+    return NextResponse.json(
+      { error: "Ошибка сохранения пользователя" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ user });

@@ -8,7 +8,7 @@ export async function GET() {
     .order("name", { ascending: true });
 
   if (error) {
-    console.error(error);
+    console.error("Error loading cities", error);
     return NextResponse.json({ cities: [] }, { status: 500 });
   }
 

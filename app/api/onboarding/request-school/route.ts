@@ -11,23 +11,22 @@ export async function POST(req: NextRequest) {
 
   const telegramId = String(telegramUser.id);
 
+  const upsertPayload = {
+    telegram_id: telegramId,
+    username: telegramUser.username ?? null,
+    first_name: telegramUser.first_name ?? null,
+    last_name: telegramUser.last_name ?? null,
+    photo_url: telegramUser.photo_url ?? null,
+  };
+
   const { data: userRow, error: userErr } = await supabaseAdmin
     .from("users")
-    .upsert(
-      {
-        telegram_id: telegramId,
-        username: telegramUser.username ?? null,
-        first_name: telegramUser.first_name ?? null,
-        last_name: telegramUser.last_name ?? null,
-        photo_url: telegramUser.photo_url ?? null,
-      },
-      { onConflict: "telegram_id" }
-    )
+    .upsert(upsertPayload, { onConflict: "telegram_id" })
     .select("id")
     .single();
 
   if (userErr || !userRow) {
-    console.error(userErr);
+    console.error("Error upserting user for request", userErr);
     return NextResponse.json({ error: "Ошибка пользователя" }, { status: 500 });
   }
 
@@ -40,8 +39,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Ошибка создания заявки" }, { status: 500 });
+    console.error("Error inserting school request", error);
+    return NextResponse.json(
+      { error: "Ошибка создания заявки" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true });

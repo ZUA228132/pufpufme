@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     .order("name", { ascending: true });
 
   if (error) {
-    console.error(error);
+    console.error("Error loading schools", error);
     return NextResponse.json({ schools: [] }, { status: 500 });
   }
 

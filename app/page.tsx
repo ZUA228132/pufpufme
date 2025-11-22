@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegram } from "../hooks/useTelegram";
 import Link from "next/link";
+import { useTelegram } from "../hooks/useTelegram";
 
 type TgUser = {
   id: number;

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
-// Упрощённая заглушка: возвращает последние опубликованные посты без фильтра по школе.
-// На практике нужно фильтровать по current_school_id текущего пользователя.
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("posts")
@@ -12,7 +10,7 @@ export async function GET() {
     .limit(20);
 
   if (error) {
-    console.error(error);
+    console.error("Error loading posts", error);
     return NextResponse.json({ posts: [] }, { status: 500 });
   }
 
