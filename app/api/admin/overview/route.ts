@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     .from("schools")
     .select("id, name, school_admin_id, city_id");
 
-  let schoolsWithCity = schools ?? [];
+  let schoolsWithCity: any[] = schools ?? [];
   if (schErr) {
     console.error("Error loading schools", schErr);
   } else {
