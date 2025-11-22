@@ -11,6 +11,10 @@ type Post = {
   image_url: string | null;
   created_at: string;
   is_pinned: boolean;
+  likes_count: number;
+  comments_count: number;
+  views_count: number;
+  liked_by_me: boolean;
 };
 
 type School = {
@@ -34,7 +38,10 @@ export default function SchoolPage() {
   const router = useRouter();
   const tg = useTelegram();
   const [school, setSchool] = useState<School | null>(null);
+
   const [posts, setPosts] = useState<Post[]>([]);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +67,58 @@ export default function SchoolPage() {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+
+  const handleToggleLike = async (postId: string) => {
+    if (!tg) return;
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              liked_by_me: !p.liked_by_me,
+              likes_count: p.likes_count + (p.liked_by_me ? -1 : 1),
+            }
+          : p
+      )
+    );
+    try {
+      const user = tg.initDataUnsafe?.user;
+      await fetch("/api/school/post/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramUser: user, postId }),
+      });
+    } catch {
+      // не критично
+    }
+  };
+
+  const handleSendComment = async (postId: string) => {
+    if (!tg) return;
+    const text = (commentDrafts[postId] || "").trim();
+    if (!text) return;
+    try {
+      const user = tg.initDataUnsafe?.user;
+      const res = await fetch("/api/school/post/comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramUser: user, postId, content: text }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Ошибка комментария");
+      }
+      setCommentDrafts((prev) => ({ ...prev, [postId]: "" }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
+        )
+      );
+    } catch {
+      // можно добавить показ ошибки, но не засоряем интерфейс
     }
   };
 
@@ -186,6 +245,41 @@ export default function SchoolPage() {
                   {p.content}
                 </p>
               )}
+              <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleLike(p.id)}
+                    className="flex items-center gap-1 active:scale-95"
+                  >
+                    <span>{p.liked_by_me ? "❤️" : "🤍"}</span>
+                    <span>{p.likes_count}</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <span>💬</span>
+                    <span>{p.comments_count}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>👁‍🗨</span>
+                    <span>{p.views_count}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-1 text-[11px]"
+                  placeholder="Комментировать..."
+                  value={commentDrafts[p.id] || ""}
+                  onChange={(e) =>
+                    setCommentDrafts((prev) => ({ ...prev, [p.id]: e.target.value }))
+                  }
+                />
+                <button
+                  onClick={() => handleSendComment(p.id)}
+                  className="rounded-xl bg-slate-800 px-3 py-1 text-[11px]"
+                >
+                  OK
+                </button>
+              </div>
             </article>
           ))}
         </div>

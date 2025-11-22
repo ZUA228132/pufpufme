@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const { data: schoolRow, error: schoolErr } = await supabaseAdmin
     .from("schools")
-    .select("id, name, school_admin_id")
+    .select("id, name, description, logo_url, banner_url, school_admin_id")
     .eq("id", schoolId)
     .maybeSingle();
 
@@ -105,6 +105,9 @@ export async function POST(req: NextRequest) {
     school: {
       id: schoolRow.id as string,
       name: schoolRow.name as string,
+      description: (schoolRow.description as string | null) ?? null,
+      logo_url: (schoolRow.logo_url as string | null) ?? null,
+      banner_url: (schoolRow.banner_url as string | null) ?? null,
     },
     suggestions: mappedSuggestions,
     posts: (posts ?? []) as any[],

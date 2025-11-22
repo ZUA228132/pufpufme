@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
-type SchoolWithCity = {
-  id: string;
-  name: string;
-  school_admin_id: string | null;
-  city_name: string | null;
-};
-
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { telegramUser } = body || {};
@@ -21,7 +14,6 @@ export async function POST(req: NextRequest) {
 
   const telegramId = String(telegramUser.id);
 
-  // проверяем, что это глобальный админ
   const { data: userRow, error: userErr } = await supabaseAdmin
     .from("users")
     .select("id, is_global_admin")
@@ -40,12 +32,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // заявки на школы
   const { data: requests, error: reqErr } = await supabaseAdmin
     .from("school_requests")
-    .select(
-      "id, city_name, school_name, address, status, requested_by_user_id, created_at"
-    )
+    .select("id, city_name, school_name, address, status, requested_by_user_id, created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
@@ -53,46 +42,34 @@ export async function POST(req: NextRequest) {
     console.error("Error loading school_requests", reqErr);
   }
 
-  // школы
   const { data: schools, error: schErr } = await supabaseAdmin
     .from("schools")
     .select("id, name, school_admin_id, city_id");
 
-  let schoolsWithCity: SchoolWithCity[] = [];
-
+  let schoolsWithCity = schools ?? [];
   if (schErr) {
     console.error("Error loading schools", schErr);
-  } else if (schools && schools.length > 0) {
-    const cityIds = Array.from(
-      new Set(
-        schools
-          .map((s: any) => s.city_id)
-          .filter((v: any) => v !== null && v !== undefined)
-      )
-    ) as string[];
-
-    const citiesMap: Record<string, string> = {};
-
+  } else {
+    const cityIds = Array.from(new Set((schools ?? []).map((s) => s.city_id).filter(Boolean)));
+    let citiesMap: Record<string, string> = {};
     if (cityIds.length > 0) {
       const { data: cities } = await supabaseAdmin
         .from("cities")
         .select("id, name")
-        .in("id", cityIds);
-
+        .in("id", cityIds as string[]);
       for (const c of cities ?? []) {
         citiesMap[c.id] = c.name;
       }
     }
-
-    schoolsWithCity = schools.map((s: any) => ({
-      id: s.id as string,
-      name: s.name as string,
-      school_admin_id: (s.school_admin_id as string | null) ?? null,
-      city_name: s.city_id ? citiesMap[s.city_id as string] ?? null : null,
+    schoolsWithCity = (schools ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      school_admin_id: s.school_admin_id,
+      city_name: s.city_id ? citiesMap[s.city_id] ?? null : null,
     }));
   }
 
-  // жалобы и баны для главного админа
+
   const { data: reports, error: reportsErr } = await supabaseAdmin
     .from("user_reports")
     .select(

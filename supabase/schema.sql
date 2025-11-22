@@ -156,3 +156,43 @@ create table if not exists public.user_reports (
   resolved_by_user_id uuid references public.users (id)
 );
 
+
+
+-- Лайки постов
+create table if not exists public.post_likes (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  created_at timestamptz default now(),
+  unique (post_id, user_id)
+);
+
+-- Комментарии к постам
+create table if not exists public.post_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- Просмотры постов (уникальные по пользователю)
+create table if not exists public.post_views (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid references public.users (id) on delete cascade,
+  created_at timestamptz default now()
+);
+
+-- Приглашения в школу
+create table if not exists public.school_invites (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  code text not null unique,
+  max_uses int,
+  used_count int not null default 0,
+  created_by_user_id uuid not null references public.users (id) on delete cascade,
+  is_active boolean not null default true,
+  created_at timestamptz default now()
+);
+
