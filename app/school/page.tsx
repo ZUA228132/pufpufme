@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Post = {
@@ -11,6 +12,7 @@ type Post = {
 export default function SchoolPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const load = async () => {
@@ -26,7 +28,15 @@ export default function SchoolPage() {
   return (
     <main className="w-full max-w-xl">
       <div className="card p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Новости вашей школы</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold">Новости вашей школы</h1>
+          <button
+            onClick={() => router.push("/school/election")}
+            className="text-xs rounded-xl border border-slate-700 px-3 py-1 hover:bg-slate-800"
+          >
+            Голосование за админа
+          </button>
+        </div>
         {loading ? (
           <div className="text-sm text-slate-300">Загрузка...</div>
         ) : posts.length === 0 ? (

@@ -15,8 +15,8 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["node"],          // ← только node
-    "incremental": true,        // это Next добавил — оставляем
+    "types": ["node"],
+    "incremental": true,
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

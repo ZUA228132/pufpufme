@@ -1,4 +1,7 @@
--- Очистка (опционально, если это новый проект и нет данных)
+-- Очистка (для нового проекта, если нет прод-данных)
+drop table if exists public.votes cascade;
+drop table if exists public.elections cascade;
+drop table if exists public.admin_candidates cascade;
 drop table if exists public.posts cascade;
 drop table if exists public.school_requests cascade;
 drop table if exists public.schools cascade;
@@ -66,4 +69,37 @@ create table if not exists public.posts (
   status text not null default 'pending', -- pending / published / rejected
   is_pinned boolean not null default false,
   created_at timestamptz default now()
+);
+
+-- Кандидаты в админы школы
+create table if not exists public.admin_candidates (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  display_name text,
+  class_name text,
+  photo_url text,
+  status text not null default 'approved',
+  created_at timestamptz default now()
+);
+
+-- Выборы админа школы
+create table if not exists public.elections (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  status text not null default 'active', -- active / finished
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz not null,
+  winner_candidate_id uuid references public.admin_candidates (id),
+  created_at timestamptz default now()
+);
+
+-- Голоса
+create table if not exists public.votes (
+  id uuid primary key default gen_random_uuid(),
+  election_id uuid not null references public.elections (id) on delete cascade,
+  voter_user_id uuid not null references public.users (id) on delete cascade,
+  candidate_id uuid not null references public.admin_candidates (id) on delete cascade,
+  created_at timestamptz default now(),
+  unique (election_id, voter_user_id)
 );

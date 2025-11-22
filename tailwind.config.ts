@@ -10,11 +10,11 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#f0f7ff",
-          100: "#dbe9ff",
-          500: "#2563eb",
-          600: "#1d4ed8",
-          900: "#0b1f4a"
+        50: "#f0f7ff",
+        100: "#dbe9ff",
+        500: "#2563eb",
+        600: "#1d4ed8",
+        900: "#0b1f4a"
         }
       },
       borderRadius: {

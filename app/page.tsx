@@ -63,7 +63,7 @@ export default function HomePage() {
             href="/onboarding"
             className="inline-flex items-center justify-center rounded-2xl bg-brand-500 hover:bg-brand-600 transition px-4 py-2 text-sm font-medium"
           >
-            Продолжить регистрацию
+            Продолжить
           </Link>
           <p className="text-[11px] text-slate-500">
             При первом входе мы запросим только город и школу. Имя и аватар берём из вашего Telegram.

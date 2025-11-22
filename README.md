@@ -1,61 +1,54 @@
-# TG School Hub v2 (MVP)
+# TG School Hub v3
 
-Готовый каркас Telegram WebApp для школьного сообщества на Next.js 14 + Supabase.
+Next.js 14 + Supabase + Telegram WebApp.
 
-## 1. Supabase
+## Основной функционал
 
-1. Создай проект в Supabase.
-2. В SQL Editor вставь и выполни `supabase/schema.sql`.
-3. В Project Settings → API скопируй:
-   - `Project URL`
-   - `anon public key`
-   - `service_role key`
+- Онбординг:
+  - выбор города/школы из Supabase;
+  - заявка на подключение школы;
+  - если пользователь — глобальный админ (`is_global_admin = true`), сразу попадает в `/admin`;
+  - если пользователь уже привязан к школе, попадает в `/school`.
 
-## 2. Переменные окружения
+- Панель главного админа `/admin`:
+  - просмотр заявок на новые школы;
+  - одобрение заявки = создание города (если его нет), создание школы и привязка автора заявки к школе;
+  - отклонение заявки;
+  - список школ с city_name и school_admin_id;
+  - ручное назначение админа школы по user_id.
 
-Создай `.env.local` на основе `.env.example`:
+- Школа `/school`:
+  - базовый фид новостей (таблица `posts` со status = 'published');
+  - кнопка "Голосование за админа" → `/school/election`.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
+- Голосование за админа `/school/election`:
+  - пользователь может подать свою кандидатуру (таблица `admin_candidates`);
+  - как только кандидатов становится 6+ и ещё нет активных выборов — создаётся запись в `elections` со сроком 24 часа;
+  - пользователи школы голосуют за кандидатов (таблица `votes`, 1 голос на выборы);
+  - при завершении срока выборов (или при следующем запросе статуса) определяется победитель:
+    - кандидат с максимумом голосов;
+    - он назначается админом школы (обновление `schools.school_admin_id`);
+    - статус выборов меняется на `finished`.
 
-## 3. Локальный запуск
+## Что нужно сделать
 
-```bash
-npm install
-npm run dev
-```
-
-## 4. Деплой на Vercel
-
-1. Залей код в репозиторий (GitHub/GitLab).
-2. Импортируй в Vercel.
-3. В Settings → Environment Variables добавь:
+1. Создать проект в Supabase.
+2. Вставить `supabase/schema.sql` в SQL Editor и выполнить.
+3. Заполнить таблицу `cities` и `schools` (можно импортом CSV).
+4. В Supabase в `users` вручную выставить `is_global_admin = true` нужному пользователю.
+5. В `.env.local` прописать:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-4. Запусти деплой.
+6. Запустить:
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-## 5. Что уже реализовано
+7. Задеплоить на Vercel и прописать те же переменные окружения.
 
-- Подключение Telegram WebApp SDK.
-- Главная страница с отображением Telegram-пользователя.
-- Онбординг:
-  - выбор города и школы из Supabase (`cities`, `schools`);
-  - заявка на подключение новой школы (`school_requests`).
-- Базовый фид новостей школы `/school`:
-  - читает опубликованные посты (`posts` со status = 'published').
-- API-роуты:
-  - `GET /api/meta/cities`
-  - `GET /api/meta/schools?cityId=...`
-  - `POST /api/onboarding/register`
-  - `POST /api/onboarding/request-school`
-  - `GET /api/school/feed`
-
-Дальше можно расширять:
-- добавлять голосования за админа;
+Дальше можно развивать:
+- полноценную модерацию новостей и рассылок по школе;
 - премиум-подписку;
-- чаты и сообщения;
-- жалобы, баны и панель глобального админа.
+- чаты классов и жалобы.
