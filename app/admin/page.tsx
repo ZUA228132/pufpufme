@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegram } from "../hooks/useTelegram";
+import { useTelegram } from "../../hooks/useTelegram";
 
 type SchoolRequest = {
   id: string;
